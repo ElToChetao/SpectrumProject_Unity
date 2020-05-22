@@ -36,6 +36,14 @@ public class VisualizationController : MonoBehaviour
     private float colorSpeed;
     public bool useBuffer = true;
 
+    private bool isBeat;
+    private bool beatDetected;
+
+    public Material vfxMaterial;
+    public Material vfxBurstMat;
+
+    public GameObject burstPrefab;
+
     private void Start()
     {
         spectrumScript = FindObjectOfType<SpectrumController>();
@@ -88,6 +96,17 @@ public class VisualizationController : MonoBehaviour
         {
             Color col = Color.HSVToRGB((colorOffset * i + colorSpeed) % 1, 0.8f, 1);
             bandMats[i].color = col;
+            if(beatDetected)
+            {
+                col = Color.HSVToRGB((colorOffset * i + colorSpeed + 0.38f) % 1, 0.8f, 1);
+                vfxBurstMat.color = col;
+                bandMats[i].color = col;
+            }
+            if(i == bandAmount / 2)
+            {
+                //col = Color.HSVToRGB((colorOffset * i + colorSpeed + 0.38f) % 1, 0.8f, 1);
+                vfxMaterial.color = col;
+            }
         }
     }
 
@@ -121,6 +140,23 @@ public class VisualizationController : MonoBehaviour
                 newScale.y = Mathf.Clamp(newScale.y, 0, float.MaxValue);
                 bandCubes[i].localScale = newScale;
             }
+        }
+        
+        if (freqBands[0] > 4)
+        {
+            isBeat = true;
+            if(!beatDetected)
+            {
+                beatDetected = true;
+                //GameObject go = Instantiate(burstPrefab);
+                //go.transform.position = new Vector3(4, 0, -1);
+                //Destroy(go, 4);
+            }
+        }
+        else if (freqBands[0] < 2)
+        {
+            beatDetected = false;
+            isBeat = false;
         }
     }
     private void BandBuffer()
