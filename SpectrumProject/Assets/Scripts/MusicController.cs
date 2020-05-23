@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using System.IO;
+using UnityEditor;
+using UnityEngine.Networking;
 
 public class MusicController : MonoBehaviour
 {
@@ -27,7 +30,7 @@ public class MusicController : MonoBehaviour
     private int minutes = 0;
 
     private bool paused = false;
-    private bool songPlaying = false;
+    private bool changingSliderValue = false;
 
     private int songIndex = 0;
 
@@ -40,7 +43,6 @@ public class MusicController : MonoBehaviour
         }
 
         oriXSize = songBar.sizeDelta.x;
-
         //timeSlider.onValueChanged.AddListener(delegate { StartCoroutine(SetSongSecond()); });
     }
 
@@ -51,16 +53,16 @@ public class MusicController : MonoBehaviour
             if (!source.isPlaying && songs.Count > 0)
             {
                 AudioClip song = songs[songIndex];
-                source.PlayOneShot(song);
+                source.clip = song;
+                source.time = 0;
+                source.Play();
+                //songIndex++;
 
                 int totalLength = (int)song.length;
                 int totalMinutes = totalLength / 60;
                 int restSeconds = totalLength - (totalMinutes * 60);
 
                 totalTimeText.text = totalMinutes + ":" + restSeconds.ToString("00");
-
-                seconds = 0;
-                minutes = 0;
 
                 currentSongTotalSeconds = song.length;
                 currentSongTime = 0;
@@ -89,26 +91,46 @@ public class MusicController : MonoBehaviour
                     currentTimeText.text = minutes + ":" + seconds.ToString("00");
                 }
 
-                float perc = currentSongTime / currentSongTotalSeconds;
-                Vector3 newSize = new Vector3(perc * oriXSize, songBar.sizeDelta.y);
-                songBar.sizeDelta = newSize;
+                if (!changingSliderValue)
+                {
+                    float perc = currentSongTime / currentSongTotalSeconds;
+                    Vector3 newSize = new Vector3(perc * oriXSize, songBar.sizeDelta.y);
+                    songBar.sizeDelta = newSize;
 
-                timeSlider.value = perc;
+                    timeSlider.value = perc;
+                }
             }
         }
     }
 
+    public void ChanginSliderValue()
+    {
+        changingSliderValue = true;
+    }
+    public void SliderValueChanged()
+    {
+        StartCoroutine(SetSongSecond());
+    }
     private IEnumerator SetSongSecond()
     {
         paused = true;
-        yield return new WaitForSeconds(0.5f);
         source.Stop();
-        source.time = timeSlider.value * currentSongTotalSeconds;
+        yield return new WaitForEndOfFrame();
 
-        yield return new WaitForSeconds(0.5f);
+        float newTime = timeSlider.value * currentSongTotalSeconds;
+        source.time = currentSongTime = newTime;
+
         source.Play();
-        yield return new WaitForSeconds(0.5f);
         paused = false;
+        changingSliderValue = false;
+
+        int totalLength = (int)newTime;
+        int totalMinutes = totalLength / 60;
+        int restSeconds = totalLength - (totalMinutes * 60);
+
+        seconds = restSeconds;
+        minutes = totalMinutes;
+        currentTimeText.text = minutes + ":" + seconds.ToString("00");
     }
 
     public void OnNextSongButton()

@@ -141,11 +141,11 @@ public class VisualizationController : MonoBehaviour
                 bandCubes[i].localScale = newScale;
             }
         }
-        
+
         if (freqBands[0] > 4)
         {
             isBeat = true;
-            if(!beatDetected)
+            if (!beatDetected)
             {
                 beatDetected = true;
                 //GameObject go = Instantiate(burstPrefab);
