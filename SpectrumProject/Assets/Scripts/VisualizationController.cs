@@ -7,8 +7,10 @@ public class VisualizationController : MonoBehaviour
 {
     public GameObject cubePrefab;
     public GameObject bandCubePrefab;
+    public GameObject ringCubePrefab;
 
     private Transform[] cubes;
+    private Transform[] ringCubes;
     private Transform[] bandCubes;
 
     private int amount;
@@ -46,8 +48,15 @@ public class VisualizationController : MonoBehaviour
 
     private void Start()
     {
-        spectrumScript = FindObjectOfType<SpectrumController>();
+        InitVariables();
+        CreateSimpleCubes();
+        CreateBandCubes();
+        //CreateRing();
+    }
 
+    private void InitVariables()
+    {
+        spectrumScript = FindObjectOfType<SpectrumController>();
         amount = spectrumScript.GetSpectrumSize();
 
         freqBands = new float[bandAmount];
@@ -58,33 +67,69 @@ public class VisualizationController : MonoBehaviour
 
         bufferReducer = new float[bandAmount];
         highestFreqband = new float[bandAmount];
+    }
 
-        cubes = new Transform[amount];
-        bandCubes = new Transform[bandAmount];
-
-        oriScale = cubePrefab.transform.localScale;
+    private void CreateBandCubes()
+    {
         bandOriScale = bandCubePrefab.transform.localScale;
-        float offset = oriScale.x;
-
-        //for (int i = 0; i < amount; i++)
-        //{
-        //    cubes[i] = Instantiate(cubePrefab).transform;
-        //    cubes[i].SetParent(transform);
-        //    cubes[i].position = Vector3.right * offset * i;
-        //}
-        offset = bandOriScale.x;
-
+        float offset = bandOriScale.x;
+        bandCubes = new Transform[bandAmount];
         bandMats = new Material[bandAmount];
+        Transform parent = new GameObject("BandCubes").transform;
+
         float colorOffset = (float)1 / 25;
         for (int i = 0; i < bandAmount; i++)
         {
             bandCubes[i] = Instantiate(bandCubePrefab).transform;
-            bandCubes[i].SetParent(transform);
+            bandCubes[i].SetParent(parent);
             bandCubes[i].position = Vector3.right * offset * i;
 
             bandMats[i] = bandCubes[i].GetComponentInChildren<MeshRenderer>().material;
             Color col = Color.HSVToRGB(colorOffset * i, 0.8f, 1);
             bandMats[i].color = col;
+        }
+    }
+
+    private void CreateSimpleCubes()
+    {
+        float offset = oriScale.x;
+        oriScale = cubePrefab.transform.localScale;
+        cubes = new Transform[amount];
+        Transform parent = new GameObject("SimpleCubes").transform;
+        for (int i = 0; i < amount; i++)
+        {
+            cubes[i] = Instantiate(cubePrefab).transform;
+            cubes[i].SetParent(parent);
+            cubes[i].position = Vector3.right * offset * i;
+        }
+    }
+
+    private void CreateRing()
+    {
+        oriScale = cubePrefab.transform.localScale;
+        ringCubes = new Transform[amount];
+
+        Transform parent = new GameObject("RingParent").transform;
+        float angleOffset = (float)360 / 512;
+        float radius = 3;
+        for (int i = 0; i < amount; i++)
+        {
+            float currentAngle = angleOffset * i;
+
+            Vector3 pos;
+            pos.x = radius * Mathf.Cos(currentAngle * Mathf.Deg2Rad);
+            pos.y = radius * Mathf.Sin(currentAngle * Mathf.Deg2Rad);
+            pos.z = 0;
+
+            Vector3 rot;
+            rot.x = 0;
+            rot.y = 0;
+            rot.z = currentAngle - 90;
+
+            ringCubes[i] = Instantiate(ringCubePrefab).transform;
+            ringCubes[i].SetParent(parent);
+            ringCubes[i].position = pos;
+            ringCubes[i].localEulerAngles = rot;
         }
     }
 
@@ -113,11 +158,8 @@ public class VisualizationController : MonoBehaviour
     private void Update()
     {
         spectrum = spectrumScript.GetSpectrum();
-        //for (int i = 0; i < amount; i++)
-        //{
-        //    Vector3 newScale = oriScale + Vector3.up * spectrum[i] * maxHeight;
-        //    cubes[i].localScale = newScale;
-        //}
+        //UpdateSimpleCubes();
+        //UpdateRingCubes();
         ChangeBandColors();
         SetFrecBand();
         SetHightestFreq();
@@ -125,32 +167,34 @@ public class VisualizationController : MonoBehaviour
         if (useBuffer)
         {
             BandBuffer();
-            for (int i = 0; i < bandCubes.Length; i++)
-            {
-                Vector3 newScale = bandOriScale + Vector3.up * audioBandBuffer[i] * bandMaxHeight;
-                newScale.y = Mathf.Clamp(newScale.y, 0, float.MaxValue);
-                bandCubes[i].localScale = newScale;
-            }
+            UpdateBandCubes(audioBandBuffer);
         }
         else
         {
-            for (int i = 0; i < bandCubes.Length; i++)
-            {
-                Vector3 newScale = bandOriScale + Vector3.up * audioFreqBands[i] * bandMaxHeight;
-                newScale.y = Mathf.Clamp(newScale.y, 0, float.MaxValue);
-                bandCubes[i].localScale = newScale;
-            }
+            UpdateBandCubes(audioFreqBands);
         }
 
+        DetectBeat();
+    }
+
+    private void UpdateBandCubes(float[] data)
+    {
+        for (int i = 0; i < bandCubes.Length; i++)
+        {
+            Vector3 newScale = bandOriScale + Vector3.up * data[i] * bandMaxHeight;
+            newScale.y = Mathf.Clamp(newScale.y, 0, float.MaxValue);
+            bandCubes[i].localScale = newScale;
+        }
+    }
+
+    private void DetectBeat()
+    {
         if (freqBands[0] > 4)
         {
             isBeat = true;
             if (!beatDetected)
             {
                 beatDetected = true;
-                //GameObject go = Instantiate(burstPrefab);
-                //go.transform.position = new Vector3(4, 0, -1);
-                //Destroy(go, 4);
             }
         }
         else if (freqBands[0] < 2)
@@ -159,6 +203,25 @@ public class VisualizationController : MonoBehaviour
             isBeat = false;
         }
     }
+
+    private void UpdateSimpleCubes()
+    {
+        for (int i = 0; i < amount; i++)
+        {
+            Vector3 newScale = oriScale + Vector3.up * spectrum[i] * maxHeight;
+            cubes[i].localScale = newScale;
+        }
+    }
+
+    private void UpdateRingCubes()
+    {
+        for (int i = 0; i < amount; i++)
+        {
+            Vector3 newScale = oriScale + Vector3.up * spectrum[i] * maxHeight;
+            ringCubes[i].localScale = newScale;
+        }
+    }
+
     private void BandBuffer()
     {
         for (int i = 0; i < bandAmount; i++)

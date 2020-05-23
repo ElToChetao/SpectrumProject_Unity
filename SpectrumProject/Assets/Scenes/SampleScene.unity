@@ -927,6 +927,8 @@ MonoBehaviour:
     type: 3}
   bandCubePrefab: {fileID: 8874283464754979196, guid: 4fc79e734897c1f4c8588c5dbc8c272c,
     type: 3}
+  ringCubePrefab: {fileID: 8874283464754979196, guid: 08a3d7ff32b41c54b80664f485c4fa8f,
+    type: 3}
   bandAmount: 8
   maxHeight: 15
   bandMaxHeight: 15
@@ -1316,6 +1318,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spectrumSize: 512
+  mode: 4
 --- !u!82 &1104911242
 AudioSource:
   m_ObjectHideFlags: 0
